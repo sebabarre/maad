@@ -163,13 +163,13 @@ public class MusicApiControllerImpl implements MusicApiController {
 		public void setPagination(Pagination pagination) {
 			this.pagination = pagination;
 		}
-		private Resultat[] resultats;
+		private Resultat[] results;
 		
-		public Resultat[] getResultats() {
-			return resultats;
+		public Resultat[] getResults() {
+			return results;
 		}
-		public void setResultats(Resultat[] resultats) {
-			this.resultats = resultats;
+		public void setResults(Resultat[] results) {
+			this.results = results;
 		}
 	}
 
