@@ -21,5 +21,4 @@ public class MusicApiControllerTest {
 		assertNotNull(listArtist);
 		assertTrue(listArtist.size() > 0);
 	}
-
 }
