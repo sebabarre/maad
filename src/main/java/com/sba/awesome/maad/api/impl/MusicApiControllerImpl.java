@@ -1,15 +1,15 @@
 package com.sba.awesome.maad.api.impl;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.sba.awesome.maad.api.MusicApiController;
@@ -37,8 +37,19 @@ public class MusicApiControllerImpl implements MusicApiController {
 		String responseStr = response.getBody();
 		Gson gson = new GsonBuilder().create();
 		Reponse reponse = gson.fromJson(responseStr , Reponse.class);
-		
-		return null;
+		List<Artist> listArtist = extractMaadArtistFromReponse(reponse);
+		return listArtist;
+	}
+
+	private List<Artist> extractMaadArtistFromReponse(Reponse reponse) {
+		//Parcourir la liste des resultats de la réponse
+		//N'extraire que les artistes ayant un thumb
+		List<Artist> listArtist = reponse.getResults().stream()
+			.filter(s -> s.getThumb() != null)
+			.filter(s -> s.getThumb().length() != 0)
+			.map(s -> new Artist(s.getId(), s.getThumb(), s.getTitle(), s.getResource_url()))
+			.collect(Collectors.toList());
+		return listArtist;
 	}
 
 	private void createRequest(String request, String ... inputs) {
@@ -163,12 +174,12 @@ public class MusicApiControllerImpl implements MusicApiController {
 		public void setPagination(Pagination pagination) {
 			this.pagination = pagination;
 		}
-		private Resultat[] results;
+		private List<Resultat> results;
 		
-		public Resultat[] getResults() {
+		public List<Resultat> getResults() {
 			return results;
 		}
-		public void setResults(Resultat[] results) {
+		public void setResults(List<Resultat> results) {
 			this.results = results;
 		}
 	}
