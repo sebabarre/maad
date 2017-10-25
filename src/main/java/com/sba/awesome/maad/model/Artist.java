@@ -1,9 +1,12 @@
 package com.sba.awesome.maad.model;
 
+import org.springframework.data.annotation.Id;
+
 public class Artist {
 
 	private String name;
-	private Integer id;
+	@Id
+	private String id;
 	private Integer apiId;
 	private String apiUrl;
 	private String thumb;
@@ -23,11 +26,11 @@ public class Artist {
 		this.name = name;
 	}
 
-	public Integer getId() {
+	public String getId() {
 		return id;
 	}
 
-	public void setId(Integer id) {
+	public void setId(String id) {
 		this.id = id;
 	}
 
