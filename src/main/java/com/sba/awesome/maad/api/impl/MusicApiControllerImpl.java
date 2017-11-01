@@ -1,6 +1,7 @@
 package com.sba.awesome.maad.api.impl;
 
 import java.io.Serializable;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -12,13 +13,15 @@ import org.springframework.web.client.RestTemplate;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.sba.awesome.maad.api.MusicApiController;
+import com.sba.awesome.maad.model.Album;
 import com.sba.awesome.maad.model.Artist;
 
 @Service
 public class MusicApiControllerImpl implements MusicApiController {
 	
 	private final String API_CALL = "https://api.discogs.com";
-	private final String SEARCH_ARTIST_REQUEST = "/database/search?q=%s&type=artist";
+	private final String SEARCH_ARTIST_REQUEST = "/database/search?q=%s&type=artist&per_page=20";
+	private final String SEARCH_ALBUMS_FROM_ARTIST_REQUEST = "/artists/%s/releases?per_page=500";
 	private final String DISCOGS_KEY="pgELpzUFGCUBfKpoxAag";
 	private final String DISCOGS_SECRET="LUjMzukloTmBuqHTUuxwxjSJOWGLmZzJ";
 	private RestTemplate restTemplate;
@@ -38,6 +41,33 @@ public class MusicApiControllerImpl implements MusicApiController {
 		Reponse reponse = gson.fromJson(responseStr , Reponse.class);
 		List<Artist> listArtist = extractMaadArtistFromReponse(reponse);
 		return listArtist;
+	}
+	
+
+	@Override
+	public List<Album> findAlbumFromArtist(Artist artist) {
+		createRequest(SEARCH_ALBUMS_FROM_ARTIST_REQUEST, String.valueOf(artist.getApiId()));
+		ResponseEntity<String> response = restTemplate.getForEntity(currentRequest, String.class);
+		String responseStr = response.getBody();
+		Gson gson = new GsonBuilder().create();
+		Reponse reponse = gson.fromJson(responseStr , Reponse.class);
+		
+		List<Album> listAlbum = extractMaadAlbumFromReponse(reponse);
+		return listAlbum;
+	}
+
+	private List<Album> extractMaadAlbumFromReponse(Reponse reponse) {
+		// Parcourir la liste des résultats de la réponse
+		// N'extraire que les albums de type master et de role main
+		List<Album> listAlbum = reponse.getReleases().stream()
+				.filter(s -> s.getRole() != null)
+				.filter(s -> s.getRole().equals("Main"))
+				.filter(s -> s.getType() != null)
+				.filter(s -> s.getType().equals("master"))
+				.sorted((s1, s2) -> Integer.compare(s2.getYear(), s1.getYear()))
+				.map(s -> new Album(null, s.getTitle(), s.getId(), s.getResource_url(), s.getThumb(), s.getYear()))
+				.collect(Collectors.toList());
+		return listAlbum;
 	}
 
 	private List<Artist> extractMaadArtistFromReponse(Reponse reponse) {
@@ -120,13 +150,20 @@ public class MusicApiControllerImpl implements MusicApiController {
 		 */
 		private static final long serialVersionUID = -174396032097837256L;
 		private String thumb;
+		private String title;
+		private String uri;
+		private String resource_url;
+		private String type;
+		private Integer id;
+		private String role;
+		private Integer year;
+
 		public String getThumb() {
 			return thumb;
 		}
 		public void setThumb(String thumb) {
 			this.thumb = thumb;
 		}
-		private String title;
 		public String getTitle() {
 			return title;
 		}
@@ -157,10 +194,18 @@ public class MusicApiControllerImpl implements MusicApiController {
 		public void setId(Integer id) {
 			this.id = id;
 		}
-		private String uri;
-		private String resource_url;
-		private String type;
-		private Integer id;
+		public String getRole() {
+			return role;
+		}
+		public void setRole(String role) {
+			this.role = role;
+		}
+		public Integer getYear() {
+			return year;
+		}
+		public void setYear(Integer year) {
+			this.year = year;
+		}
 	}
 	
 	static class Reponse implements Serializable{
@@ -181,6 +226,27 @@ public class MusicApiControllerImpl implements MusicApiController {
 		public void setResults(List<Resultat> results) {
 			this.results = results;
 		}
+		
+		private List<Resultat> releases;
+		public List<Resultat> getReleases() {
+			return releases;
+		}
+		public void setReleases(List<Resultat> releases) {
+			this.releases = releases;
+		}
 	}
+	
+	static class Release implements Serializable {
+		
+		private static final long serialVersionUID = 4503223295027109327L;
+		private String main_release;
 
+		public String getMain_release() {
+			return main_release;
+		}
+
+		public void setMain_release(String main_release) {
+			this.main_release = main_release;
+		}
+	}
 }
