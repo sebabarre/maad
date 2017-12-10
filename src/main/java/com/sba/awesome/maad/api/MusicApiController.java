@@ -11,4 +11,6 @@ public interface MusicApiController {
 	
 	public List<Album> findAlbumFromArtist(Artist artist);
 
+	public Artist findArtist(Integer idArtist);
+
 }

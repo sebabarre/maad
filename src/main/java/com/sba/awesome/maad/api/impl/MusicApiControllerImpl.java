@@ -22,6 +22,7 @@ public class MusicApiControllerImpl implements MusicApiController {
 	private final String API_CALL = "https://api.discogs.com";
 	private final String SEARCH_ARTIST_REQUEST = "/database/search?q=%s&type=artist&per_page=20";
 	private final String SEARCH_ALBUMS_FROM_ARTIST_REQUEST = "/artists/%s/releases?per_page=500";
+	private final String FIND_ARTIST_BY_ID = "/artists/%s";
 	private final String DISCOGS_KEY="pgELpzUFGCUBfKpoxAag";
 	private final String DISCOGS_SECRET="LUjMzukloTmBuqHTUuxwxjSJOWGLmZzJ";
 	private RestTemplate restTemplate;
@@ -42,7 +43,6 @@ public class MusicApiControllerImpl implements MusicApiController {
 		List<Artist> listArtist = extractMaadArtistFromReponse(reponse);
 		return listArtist;
 	}
-	
 
 	@Override
 	public List<Album> findAlbumFromArtist(Artist artist) {
@@ -55,6 +55,18 @@ public class MusicApiControllerImpl implements MusicApiController {
 		List<Album> listAlbum = extractMaadAlbumFromReponse(reponse);
 		return listAlbum;
 	}
+	
+	@Override
+	public Artist findArtist(Integer idArtist) {
+		createRequestWithoutKey(FIND_ARTIST_BY_ID, String.valueOf(idArtist));
+		ResponseEntity<String> response = restTemplate.getForEntity(currentRequest, String.class);
+		String responseStr = response.getBody();
+		Gson gson = new GsonBuilder().create();
+		ReponseArtist reponse = gson.fromJson(responseStr , ReponseArtist.class);
+		Artist artist = new Artist(idArtist, null, reponse.getName(), reponse.getUri()); //TODO: add thumb
+		artist.setListAlbum(findAlbumFromArtist(artist));
+		return artist;
+	}
 
 	private List<Album> extractMaadAlbumFromReponse(Reponse reponse) {
 		// Parcourir la liste des résultats de la réponse
@@ -64,7 +76,7 @@ public class MusicApiControllerImpl implements MusicApiController {
 				.filter(s -> s.getRole().equals("Main"))
 				.filter(s -> s.getType() != null)
 				.filter(s -> s.getType().equals("master"))
-				.sorted((s1, s2) -> Integer.compare(s2.getYear(), s1.getYear()))
+				.sorted((s1, s2) -> Integer.compare(s2.getYear() != null ? s2.getYear() : 0, s1.getYear() != null ? s1.getYear() : 0))
 				.map(s -> new Album(null, s.getTitle(), s.getId(), s.getResource_url(), s.getThumb(), s.getYear()))
 				.collect(Collectors.toList());
 		return listAlbum;
@@ -86,6 +98,34 @@ public class MusicApiControllerImpl implements MusicApiController {
 		builder.append(String.format(request, inputs));
 		builder.append("&key=" + DISCOGS_KEY + "&secret=" + DISCOGS_SECRET);
 		this.currentRequest = builder.toString();
+	}
+	
+	private void createRequestWithoutKey(String request, String ... inputs) {
+		StringBuilder builder = new StringBuilder(API_CALL);
+		builder.append(String.format(request, inputs));
+		this.currentRequest = builder.toString();
+	}
+	
+	static class ReponseArtist implements Serializable {
+		private String uri;
+		private String name;
+		
+
+		public String getUri() {
+			return uri;
+		}
+
+		public void setUri(String releases_url) {
+			this.uri = releases_url;
+		}
+
+		public String getName() {
+			return name;
+		}
+
+		public void setName(String name) {
+			this.name = name;
+		}
 	}
 	
 	static class Pagination implements Serializable{
@@ -121,6 +161,9 @@ public class MusicApiControllerImpl implements MusicApiController {
 		}
 		private Integer page;
 		private Url urls;
+		public static long getSerialversionuid() {
+			return serialVersionUID;
+		}
 	}
 	
 	static class Url implements Serializable {
@@ -249,4 +292,6 @@ public class MusicApiControllerImpl implements MusicApiController {
 			this.main_release = main_release;
 		}
 	}
+
+	
 }
